@@ -1,0 +1,10 @@
+role :god , 0
+role :admin, 1
+role :worker, 2
+
+allow '/'
+allow '/tracking', :at_least => :admin
+allow '/maintenance', :at_least => :worker
+allow '/maintenance/[0-9]*/edit', :at_least => :admin
+allow '/maintenance/[0-9]*$', :at_least => :admin
+

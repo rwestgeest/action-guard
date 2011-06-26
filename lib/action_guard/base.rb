@@ -1,0 +1,56 @@
+module ActionGuard
+  class Guard
+    def initialize
+      @rules = {}
+      @rules.default = DisallowRule.new
+      @roles = {}
+      @roles.default = Role.new(:illegal_role, 100000)
+    end
+
+    def load_from_string(configuration, name = nil)
+      Syntax.new(self).instance_eval(configuration, name || 'unknown')
+    end
+
+    def define_role(role, level)
+      @roles[role.to_sym] = Role.new(role, level)
+    end
+
+    def role(role_value)
+      @roles[role_value.to_sym]
+    end
+
+    def valid_role?(role)
+      @roles.has_key?(role.to_sym)
+    end
+
+    def valid_roles
+      @roles.keys.map { |r| r.to_s }
+    end
+
+    def leveled_rule(path_matcher, role_value, &block)
+      raise Error.new("undefined role '#{role_value}'") unless valid_role?(role_value)
+      rules[path_matcher] = LevelRule.new(role_value, self, &block)
+    end
+
+    def allow_rule(path_matcher)
+      rules[path_matcher] = AllowRule.new
+    end
+
+    def refuse_rule(path_matcher)
+      rules[path_matcher] = DisallowRule.new
+    end
+
+    def exact_role_rule(path_matcher, role_value)
+      rules[path_matcher] = ExactRoleRule.new(role_value)
+    end
+
+    def authorized?(person, path)
+      raise Error.new("no configuration loaded") if rules.empty?
+      rule_key = rules.keys.sort{|x,y| y <=> x }.select {|k| path =~ /^#{k}/}.first
+      rules[rule_key].allows?(person)
+    end
+
+    private
+    attr_reader :rules
+  end
+end
