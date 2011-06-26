@@ -1,5 +1,5 @@
 module ActionGuard # :nodoc:
   module Version # :nodoc:
-    STRING = '0.0.1'
+    STRING = File.read(File.join(File.dirname(__FILE__),'..','..', 'VERSION'))
   end
 end

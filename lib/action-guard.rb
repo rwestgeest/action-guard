@@ -1,7 +1,7 @@
-require 'action_guard/syntax'
-require 'action_guard/rules'
-require 'action_guard/role'
-require 'action_guard/base'
+require 'action-guard/syntax'
+require 'action-guard/rules'
+require 'action-guard/role'
+require 'action-guard/base'
 
 module ActionGuard
   class Error < StandardError; end
