@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{action-guard}
-  s.version = "0.0.1"
+  s.version = "0.0.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Rob Westgeest"]
-  s.date = %q{2011-06-26}
+  s.date = %q{2011-06-27}
   s.description = %q{authorisation module of actions based on url-paths for usage in Rails and possibly other ruby based web frameworks}
   s.email = %q{rob.westgeest@qwan.it}
   s.extra_rdoc_files = [
@@ -25,7 +25,7 @@ Gem::Specification.new do |s|
     "README.md",
     "Rakefile",
     "VERSION",
-    "action_guard.gemspec",
+    "action-guard.gemspec",
     "lib/action-guard.rb",
     "lib/action-guard/base.rb",
     "lib/action-guard/role.rb",
@@ -42,7 +42,7 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.7}
-  s.summary = %q{Action guard-0.0.1}
+  s.summary = %q{Action guard-0.0.2}
 
   if s.respond_to? :specification_version then
     current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
