@@ -232,6 +232,7 @@ describe ActionGuard do
         allow '/some_controller', :at_least => :worker
         allow '/some_controller/some_action', :at_least => :admin
         allow '/some_controller/when_role_matches_exact', :only_by => :worker
+        allow '/some_controller/when_matches_exact_by_implication', :at_least => :worker, :at_most => :worker
         allow '/'
       }
       guard.should authorize(account_with_role(:admin)).to_perform_action('/some_controller/some_action')
@@ -240,6 +241,8 @@ describe ActionGuard do
       guard.should authorize(account_with_role(:worker)).to_perform_action('/some_other_controller/some_other_action')
       guard.should authorize(nil).to_perform_action('/some_other_controller/some_other_action')
       guard.should_not authorize(account_with_role(:admin)).to_perform_action('/some_controller/when_role_matches_exact')
+      guard.should authorize(account_with_role(:worker)).to_perform_action('/some_controller/when_matches_exact_by_implication')
+      guard.should_not authorize(account_with_role(:admin)).to_perform_action('/some_controller/when_matches_exact_by_implication')
     end
   end
 end
