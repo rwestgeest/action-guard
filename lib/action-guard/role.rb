@@ -10,6 +10,10 @@ module ActionGuard
       level <= other.level
     end
 
+    def < (other)
+      level > other.level
+    end
+
     def to_s
       "Role(:#{@value})"
     end

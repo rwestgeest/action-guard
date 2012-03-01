@@ -10,15 +10,17 @@ module ActionGuard
   end
 
   class LevelRule
-    def initialize(allowed_level, role_leveler, &proc)
+    def initialize(allowed_level, to_allowed_level, role_leveler, &proc)
       @role_leveler = role_leveler
       @allowed_level = allowed_level
+      @to_allowed_level = to_allowed_level
       @additional_rule = proc
     end
 
     def allows?(person)
       return false unless person
       return false unless @role_leveler.role(person.role) >= @role_leveler.role(@allowed_level)
+      return false if @to_allowed_level && @role_leveler.role(@to_allowed_level) < @role_leveler.role(person.role)
       return true unless @additional_rule
       return @additional_rule.call(person)
     end

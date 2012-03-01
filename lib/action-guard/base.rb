@@ -27,9 +27,10 @@ module ActionGuard
       @roles.keys.map { |r| r.to_s }
     end
 
-    def leveled_rule(path_matcher, role_value, &block)
-      raise Error.new("undefined role '#{role_value}'") unless valid_role?(role_value)
-      rules[path_matcher] = LevelRule.new(role_value, self, &block)
+    def leveled_rule(path_matcher, from_role_value, to_role_value = nil, &block)
+      raise Error.new("undefined role '#{from_role_value}'") unless valid_role?(from_role_value)
+      raise Error.new("undefined role '#{to_role_value}'") if to_role_value && !valid_role?(to_role_value)
+      rules[path_matcher] = LevelRule.new(from_role_value, to_role_value, self, &block)
     end
 
     def allow_rule(path_matcher)
