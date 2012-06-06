@@ -8,7 +8,7 @@ module ActionGuard
     end
     def allow(path, options={}, &block)
       if options.has_key? :at_least
-        @guard.leveled_rule(path, options[:at_least], &block)
+        @guard.leveled_rule(path, options[:at_least], options[:at_most], &block)
       elsif options.has_key? :only_by
         @guard.exact_role_rule(path, options[:only_by])
       else

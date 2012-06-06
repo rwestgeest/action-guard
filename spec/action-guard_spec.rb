@@ -50,11 +50,12 @@ describe ActionGuard do
   end
 
   describe "role" do
+    before do 
+      guard.define_role :god, 0
+      guard.define_role :admin, 1
+    end
+
     describe ">=" do
-      before do 
-        guard.define_role :god, 0
-        guard.define_role :admin, 1
-      end
       it "should be true when role level is lower" do
         guard.role(:god).should >= guard.role(:admin)
       end
@@ -65,6 +66,17 @@ describe ActionGuard do
         guard.role(:admin).should_not >= guard.role(:god)
       end
     end
+    describe "<" do
+      it "should be true when role level is higher" do
+        guard.role(:admin).should < guard.role(:god)
+      end
+      it "should be true when role level is equal" do
+        guard.role(:admin).should_not < guard.role(:admin)
+      end
+      it "should be false when role level is lower" do
+        guard.role(:god).should_not < guard.role(:admin)
+      end
+    end
   end
 
   describe "defining a rule" do
@@ -73,6 +85,14 @@ describe ActionGuard do
         guard.leveled_rule '/some_controller#some_action', :biker
       }.should raise_error ActionGuard::Error
     end
+
+    it "fails when role not defined" do
+      guard.define_role(:god, 0)
+      lambda {
+        guard.leveled_rule '/some_controller/some_action', :god, :biker
+      }.should raise_error ActionGuard::Error
+    end
+
     it "passes when role defined" do
       lambda {
         guard.define_role :biker, 0
@@ -91,8 +111,10 @@ describe ActionGuard do
 
   describe "authorization"  do
     before do
-      guard.define_role :admin, 0
-      guard.define_role :worker, 1
+      guard.define_role :god, 0
+      guard.define_role :king, 1
+      guard.define_role :admin, 2
+      guard.define_role :worker, 3
     end
 
     describe "on an allowance rule" do
@@ -129,15 +151,25 @@ describe ActionGuard do
     describe "on a leveled action rule" do
       before do
         guard.leveled_rule '/some_controller#some_action', :admin
+        guard.leveled_rule '/some_controller#some_other_action', :admin, :king
       end
 
       it "disallows action when no account available" do
         guard.should_not authorize(nil).to_perform_action('/some_controller#some_action')
+        guard.should_not authorize(nil).to_perform_action('/some_controller#some_other')
       end
 
       it "allows action for that level and higher" do
+        guard.should authorize(account_with_role(:god)).to_perform_action('/some_controller#some_action')
         guard.should authorize(account_with_role(:admin)).to_perform_action('/some_controller#some_action')
         guard.should_not authorize(account_with_role(:worker)).to_perform_action('/some_controller#some_action')
+      end
+
+      it "allows action for that level and higher until second level" do
+        guard.should authorize(account_with_role(:king)).to_perform_action('/some_controller#some_other_action')
+        guard.should authorize(account_with_role(:admin)).to_perform_action('/some_controller#some_other_action')
+        guard.should_not authorize(account_with_role(:god)).to_perform_action('/some_controller#some_other_action')
+        guard.should_not authorize(account_with_role(:worker)).to_perform_action('/some_controller#some_other_action')
       end
 
       it "does not allow the action for a account with an illegal role value" do
@@ -225,6 +257,7 @@ describe ActionGuard do
         allow '/some_controller', :at_least => :worker
         allow '/some_controller/some_action', :at_least => :admin
         allow '/some_controller/when_role_matches_exact', :only_by => :worker
+        allow '/some_controller/when_matches_exact_by_implication', :at_least => :worker, :at_most => :worker
         allow '/'
       }
       guard.should authorize(account_with_role(:admin)).to_perform_action('/some_controller/some_action')
@@ -233,6 +266,8 @@ describe ActionGuard do
       guard.should authorize(account_with_role(:worker)).to_perform_action('/some_other_controller/some_other_action')
       guard.should authorize(nil).to_perform_action('/some_other_controller/some_other_action')
       guard.should_not authorize(account_with_role(:admin)).to_perform_action('/some_controller/when_role_matches_exact')
+      guard.should authorize(account_with_role(:worker)).to_perform_action('/some_controller/when_matches_exact_by_implication')
+      guard.should_not authorize(account_with_role(:admin)).to_perform_action('/some_controller/when_matches_exact_by_implication')
     end
   end
 end
