@@ -1,17 +1,30 @@
 require 'spec_helper'
 
 RSpec::Matchers.define :authorize do |account| 
-  chain :to_perform_action do |action|
-    @action = action
+  chain :to_perform_action do |request|
+    @request = a_request_for(request)
   end
   match do |actual_guard| 
-    actual_guard.authorized?(account, @action)
+    actual_guard.authorized?(account, @request)
   end
 end
 
 describe ActionGuard do
   let (:guard) { ActionGuard::Guard.new }
 
+
+  def a_request_for(path)
+    stub('request', :params => request_params_for(path))
+  end
+
+  def request_params_for(path)
+    path, parameters = path.split("?")
+    controller, action = path.split('#')
+    parameters_hash = Hash[ parameters &&  parameters.split("&").map {|key_value| key_value.split('=').map{|e| e.strip }} || [] ]
+    parameters_hash['controller'] = controller
+    parameters_hash['action'] = action || 'index'
+    parameters_hash
+  end
 
   def account_with_role(role)
       return stub(:account,:role => role)
@@ -57,13 +70,13 @@ describe ActionGuard do
   describe "defining a rule" do
     it "fails when role not defined" do
       lambda {
-        guard.leveled_rule '/some_controller/some_action', :biker
+        guard.leveled_rule '/some_controller#some_action', :biker
       }.should raise_error ActionGuard::Error
     end
     it "passes when role defined" do
       lambda {
         guard.define_role :biker, 0
-        guard.leveled_rule '/some_controller/some_action', :biker
+        guard.leveled_rule '/some_controller#some_action', :biker
       }.should_not raise_error ActionGuard::Error
     end
   end
@@ -71,7 +84,7 @@ describe ActionGuard do
   describe "authorization when no rules defined" do
     it "raises error on trying to authorize" do
       lambda {
-        guard.authorized?(account_with_role(:admin), '/some_controller/some_action')
+        guard.authorized?(account_with_role(:admin), '/some_controller#some_action')
       }.should raise_error ActionGuard::Error
     end
   end
@@ -90,7 +103,7 @@ describe ActionGuard do
         guard.should authorize(account_with_role(:worker)).to_perform_action('/')
       end
       it "allows regardless of account" do
-        guard.should authorize(nil).to_perform_action( '/')
+        guard.should authorize(nil).to_perform_action('/')
       end
     end
 
@@ -115,20 +128,20 @@ describe ActionGuard do
 
     describe "on a leveled action rule" do
       before do
-        guard.leveled_rule '/some_controller/some_action', :admin
+        guard.leveled_rule '/some_controller#some_action', :admin
       end
 
       it "disallows action when no account available" do
-        guard.should_not authorize(nil).to_perform_action('/some_controller/some_action')
+        guard.should_not authorize(nil).to_perform_action('/some_controller#some_action')
       end
 
       it "allows action for that level and higher" do
-        guard.should authorize(account_with_role(:admin)).to_perform_action('/some_controller/some_action')
-        guard.should_not authorize(account_with_role(:worker)).to_perform_action('/some_controller/some_action')
+        guard.should authorize(account_with_role(:admin)).to_perform_action('/some_controller#some_action')
+        guard.should_not authorize(account_with_role(:worker)).to_perform_action('/some_controller#some_action')
       end
 
       it "does not allow the action for a account with an illegal role value" do
-        guard.should_not authorize(account_with_role(:biker)).to_perform_action('/some_controller/some_action')
+        guard.should_not authorize(account_with_role(:biker)).to_perform_action('/some_controller#some_action')
       end
     end
 
@@ -136,27 +149,33 @@ describe ActionGuard do
       let(:mock_block_body) { mock }
 
       before do
-        guard.leveled_rule('/some_controller/some_action', :admin) do |accnt|
-          mock_block_body.block_called(accnt)
+        guard.leveled_rule('/some_controller#some_action', :admin) do |*args|
+          mock_block_body.block_called(*args)
         end
       end
 
       it "does not authorize action if the rule disallows the action" do
         account = account_with_role(:worker)
-        mock_block_body.should_receive(:block_called).with(account).never
-        guard.should_not authorize(account).to_perform_action('/some_controller/some_action')
+        mock_block_body.should_receive(:block_called).never
+        guard.should_not authorize(account).to_perform_action('/some_controller#some_action')
+      end
+
+      it "calls block if action is authorized" do
+        account = account_with_role(:admin)
+        mock_block_body.should_receive(:block_called).with(account, request_params_for('/some_controller#some_action'))
+        guard.authorized?(account, a_request_for( '/some_controller#some_action'))
       end
 
       it "does not authorize action if role sufices and block returns false" do
         account = account_with_role(:admin)
-        mock_block_body.should_receive(:block_called).with(account).and_return false
-        guard.should_not be_authorized(account,'/some_controller/some_action')
+        mock_block_body.stub(:block_called).and_return false
+        guard.should_not be_authorized(account, a_request_for('/some_controller#some_action'))
       end
 
       it "authorizes action is role sufices and block returns true" do
         account = account_with_role(:admin)
-        mock_block_body.should_receive(:block_called).with(account).and_return true
-        guard.should be_authorized(account,'/some_controller/some_action')
+        mock_block_body.stub(:block_called).and_return true
+        guard.should be_authorized(account, a_request_for('/some_controller#some_action'))
       end
     end
 
@@ -165,26 +184,32 @@ describe ActionGuard do
         guard.allow_rule('/home')
         guard.refuse_rule('/maintenance')
       end
+
       it "does not authorize if path does not match any rule" do
-        guard.authorized?(nil, '/unmatched/path').should be_false
+        guard.authorized?(nil, a_request_for('/unmatched/path')).should be_false
       end
+
       it "matches a rule on exact path" do
         guard.should authorize(nil).to_perform_action('/home')
       end
+
       it "matches a rule on part of a path" do
         guard.should authorize(nil).to_perform_action('/home/contact')
       end
-      it "preferres a longer path" do
-        guard.allow_rule('/maintenance/show')
-        guard.authorized?(nil, '/maintenance/edit/1').should be_false
-        guard.should authorize(nil).to_perform_action('/maintenance/show/1')
+
+      it "preferres a longer path in matching" do
+        guard.allow_rule('/maintenance/things')
+        guard.should_not authorize(nil).to_perform_action('/maintenance#edit?id=1')
+        guard.should authorize(nil).to_perform_action('/maintenance/things')
       end
+
       it "preferres a longer path regardless off order of appearance" do
-        guard.allow_rule('/some_path/show')
+        guard.allow_rule('/some_path#show')
         guard.refuse_rule('/some_path')
-        guard.authorized?(nil, '/some_path/edit/1').should be_false
-        guard.should authorize(nil).to_perform_action('/some_path/show/1')
+        guard.should_not authorize(nil).to_perform_action('/some_path#edit?id=1')
+        guard.should authorize(nil).to_perform_action('/some_path#show?1')
       end
+
       it "matches all rules from the beginnning of the path" do
         # /home/maintenance is evaluated by /home, not by /maintenance
         guard.should authorize(nil).to_perform_action('/home/maintenance')
