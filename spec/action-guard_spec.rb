@@ -14,7 +14,7 @@ describe ActionGuard do
 
 
   def a_request_for(path)
-    stub('request', :params => request_params_for(path))
+    request_params_for(path)
   end
 
   def request_params_for(path)

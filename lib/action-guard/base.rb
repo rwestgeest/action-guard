@@ -44,11 +44,11 @@ module ActionGuard
       rules[path_matcher] = ExactRoleRule.new(role_value)
     end
 
-    def authorized?(person, request)
+    def authorized?(person, request_params)
       raise Error.new("no configuration loaded") if rules.empty?
-      path = "#{request.params['controller']}##{request.params['action']}"
+      path = "#{request_params['controller']}##{request_params['action']}"
       rule_key = rules.keys.sort{|x,y| y <=> x }.select {|k| path =~ /^#{k}/}.first
-      rules[rule_key].allows?(person,request)
+      rules[rule_key].allows?(person,request_params)
     end
 
     private
