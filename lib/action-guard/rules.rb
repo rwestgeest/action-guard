@@ -27,7 +27,11 @@ module ActionGuard
   end
 
   class AllowRule
+    def initialize(&block)
+      @additional_rule = block
+    end
     def allows?(person, request_params)
+      return @additional_rule.call(person, request_params) unless @additional_rule.nil?
       true
     end
   end

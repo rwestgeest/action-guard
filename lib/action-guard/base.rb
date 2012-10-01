@@ -33,8 +33,8 @@ module ActionGuard
       rules[path_matcher] = LevelRule.new(from_role_value, to_role_value, self, &block)
     end
 
-    def allow_rule(path_matcher)
-      rules[path_matcher] = AllowRule.new
+    def allow_rule(path_matcher, &block)
+      rules[path_matcher] = AllowRule.new(&block)
     end
 
     def refuse_rule(path_matcher)

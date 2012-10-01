@@ -129,6 +129,39 @@ describe ActionGuard do
       end
     end
 
+    describe "on an allowance rule with a block" do 
+      let!(:mock_block_body) { mock }
+
+      before do
+        guard.allow_rule('some_controller#some_action') do |*args|
+          mock_block_body.block_called(*args)
+        end
+      end
+
+      it "calls block" do
+        account = account_with_role(:worker)
+        mock_block_body.should_receive(:block_called).with(account, request_params_for('some_controller#some_action'))
+        guard.authorized?(account, a_request_for( 'some_controller#some_action'))
+      end
+
+      it "disallows when block returns false" do
+        account = account_with_role(:worker)
+
+        mock_block_body.stub(:block_called).and_return false
+
+        guard.authorized?(account, a_request_for('some_controller#some_action')).should be_false
+      end
+
+      it "allows when block returns true" do
+        account = account_with_role(:worker)
+
+        mock_block_body.stub(:block_called).and_return true
+
+        guard.authorized?(account, a_request_for('some_controller#some_action')).should be_true
+      end
+    end
+
+
     describe "on an exact rule" do
       before do
         guard.exact_role_rule 'home', :admin
