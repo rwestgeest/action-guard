@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = "action-guard"
-  s.version = "1.2.0"
+  s.version = "1.2.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Rob Westgeest"]
@@ -43,7 +43,7 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
   s.rubygems_version = "1.8.24"
-  s.summary = "Action guard-1.2.0"
+  s.summary = "Action guard-1.2.1"
 
   if s.respond_to? :specification_version then
     s.specification_version = 3
