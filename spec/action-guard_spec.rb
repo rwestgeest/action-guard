@@ -291,6 +291,9 @@ describe ActionGuard do
         allow 'some_controller#some_action', :at_least => :admin
         allow 'some_controller#when_role_matches_exact', :only_by => :worker
         allow 'some_controller#when_matches_exact_by_implication', :at_least => :worker, :at_most => :worker
+        allow 'some_controller#when_block_returns_false' do  |account, request_params| 
+          false
+        end 
         allow '' # wildcard for other controllers
       }
       guard.should authorize(account_with_role(:admin)).to_perform_action('some_controller#some_action')
@@ -301,6 +304,8 @@ describe ActionGuard do
       guard.should_not authorize(account_with_role(:admin)).to_perform_action('some_controller#when_role_matches_exact')
       guard.should authorize(account_with_role(:worker)).to_perform_action('some_controller#when_matches_exact_by_implication')
       guard.should_not authorize(account_with_role(:admin)).to_perform_action('some_controller#when_matches_exact_by_implication')
+      guard.should_not authorize(nil).to_perform_action('some_controller#when_block_returns_false')
+        
     end
   end
 end

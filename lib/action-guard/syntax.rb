@@ -12,7 +12,7 @@ module ActionGuard
       elsif options.has_key? :only_by
         @guard.exact_role_rule(path, options[:only_by])
       else
-        @guard.allow_rule path
+        @guard.allow_rule(path, &block)
       end
     end
   end
